@@ -1,0 +1,43 @@
+Որպես Senior Backend Developer՝ ահա քո նախագծի վերջնական, ամենամաքուր և մասնագիտորեն կազմված .gitignore ֆայլը։ Այն խմբավորված է ըստ նշանակության, որպեսզի քո Git-ը լինի թեթև, իսկ անձնական տվյալները (ինչպես JWT Secret-ը կամ բազայի գաղտնաբառը) երբեք չհայտնվեն հանրային տիրույթում։
+
+📄 .gitignore
+Plaintext
+# Dependencies
+node_modules/
+
+# Build Output
+dist/
+artifacts/
+build/
+
+# Environment Variables (CRITICAL SECURITY)
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+logs/
+
+# Testing
+coverage/
+.nyc_output
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*.sublime-project
+*.sublime-workspace
+
+# OS Files
+.DS_Store
+Thumbs.db
+
+# NestJS specific
+thorin.config.json
+nest-cli.json.bak
