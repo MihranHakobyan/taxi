@@ -1,62 +1,49 @@
-import { Body, Controller, Post, Get, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Req, Get, HttpCode, HttpStatus } from '@nestjs/common';
 import { AuthService } from './auth.service';
+import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { RegisterDto } from './dto/register.dto';
 import { AuthDto } from './dto/auth.dto';
-import { AuthFlowDto } from './dto/auth-flow.dto';
-import { PasswordManagementDto } from './dto/password-management.dto';
-import { JwtAuthGuard } from './jwt-auth.guard';
+import { ChangePasswordDto } from './dto/change-password.dto';
+import { ResetPasswordDto } from './dto/reset-password.dto';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private readonly authService: AuthService) { }
+    constructor(private authService: AuthService) { }
 
     @Post('register')
-    register(@Body() dto: RegisterDto) {
-        return this.authService.register(dto);
-    }
+    register(@Body() dto: RegisterDto) { return this.authService.register(dto); }
 
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    login(@Body() dto: AuthDto) {
-        return this.authService.login(dto);
-    }
+    login(@Body() dto: AuthDto) { return this.authService.login(dto); }
 
     @Post('refresh')
     @HttpCode(HttpStatus.OK)
-    refresh(@Body() dto: AuthFlowDto) {
-        return this.authService.refresh(dto);
-    }
+    refresh(@Body('refreshToken') rt: string) { return this.authService.refresh(rt); }
 
     @UseGuards(JwtAuthGuard)
     @Post('logout')
-    @HttpCode(HttpStatus.OK)
-    logout(@Request() req) {
-        return this.authService.logout(req.user.id);
-    }
+    @HttpCode(HttpStatus.NO_CONTENT)
+    logout(@Req() req) { return this.authService.logout(req.user.id); }
 
     @UseGuards(JwtAuthGuard)
     @Get('me')
-    getMe(@Request() req) {
-        const { id, username, email, role } = req.user;
-        return { id, username, email, role };
-    }
+    getMe(@Req() req) { return this.authService.getMe(req.user.id); }//sa karox enq hanel
 
     @UseGuards(JwtAuthGuard)
     @Post('change-password')
-    @HttpCode(HttpStatus.OK)
-    changePassword(@Request() req, @Body() dto: PasswordManagementDto) {
+    changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
         return this.authService.changePassword(req.user.id, dto);
     }
 
     @Post('forgot-password')
-    @HttpCode(HttpStatus.OK)
-    forgotPassword(@Body() dto: AuthFlowDto) {
-        return this.authService.forgotPassword(dto);
+    forgotPassword(@Body('email') email: string) {
+        return this.authService.forgotPassword(email);
     }
 
     @Post('reset-password')
     @HttpCode(HttpStatus.OK)
-    resetPassword(@Body() dto: AuthFlowDto) {
+    resetPassword(@Body() dto: ResetPasswordDto) {
         return this.authService.resetPassword(dto);
     }
 }
