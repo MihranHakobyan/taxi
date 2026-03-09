@@ -1,99 +1,100 @@
-import { Injectable, UnauthorizedException, ConflictException, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, NotFoundException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { ConfigService } from '@nestjs/config';
 import { InjectModel } from '@nestjs/sequelize';
+import { Sequelize } from 'sequelize-typescript';
 import * as bcrypt from 'bcrypt';
 import { User } from '../users/user.model';
-import { RegisterDto } from './dto/register.dto';
-import { AuthDto } from './dto/auth.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { Driver } from '../drivers/driver.model';
+import { UsersService } from '../users/users.service';
+import { DriversService } from '../drivers/drivers.service';
+import { Role } from '../common/enums/role.enum';
+import { IAuthEntity } from './interfaces/auth-entity.interface';
+import { JwtPayload } from './interfaces/jwt-payload.interface';
 
 @Injectable()
 export class AuthService {
     constructor(
-        @InjectModel(User) private userModel: typeof User,
-        private jwtService: JwtService,
-        private configService: ConfigService,
+        @InjectModel(User) private readonly userModel: typeof User,
+        @InjectModel(Driver) private readonly driverModel: typeof Driver,
+        private readonly usersService: UsersService,
+        private readonly driversService: DriversService,
+        private readonly jwtService: JwtService,
+        private readonly sequelize: Sequelize,
     ) { }
 
-    async register(dto: RegisterDto) {
-        const existing = await this.userModel.findOne({ where: { email: dto.email } });
-        if (existing) throw new ConflictException('User already exists');
-        const hashedPassword = await bcrypt.hash(dto.password, 10);
-        const user = await this.userModel.create({ ...dto, password: hashedPassword });
-        return this.generateTokens(user);
-    }
+    async validateUser(email: string, pass: string): Promise<IAuthEntity | null> {
+        const entity = await this.userModel.findOne({ where: { email } }) || 
+                       await this.driverModel.findOne({ where: { email } });
 
-    async login(dto: AuthDto) {
-        const user = await this.userModel.findOne({ where: { email: dto.email } });
-        if (!user || !user.isActive || !(await bcrypt.compare(dto.password, user.password))) {
-            throw new UnauthorizedException('Invalid credentials');
+        if (entity && (await bcrypt.compare(pass, (entity as any).password))) {
+            return entity as unknown as IAuthEntity;
         }
-        const tokens = await this.generateTokens(user);
-        await this.updateRefreshToken(user.id, tokens.refreshToken);
-        return { ...tokens, user: { id: user.id, email: user.email, role: user.role } };
+        return null;
     }
 
-    async refresh(rt: string) {
-        if (!rt) throw new BadRequestException('Refresh token missing');
+    async login(entity: IAuthEntity) {
+        const role = entity.role || Role.DRIVER;
+        const tokens = await this.generateTokens(entity.id, entity.email, role);
+        await this.updateRefreshToken(entity.id, role, tokens.refresh_token);
+
+        const plainEntity = (entity as any).get ? (entity as any).get({ plain: true }) : entity;
+        const { password, refreshToken, ...userProfile } = plainEntity;
+
+        return { ...tokens, user: { ...userProfile, role } };
+    }
+
+    async register(dto: any, isDriver: boolean) {
+        return await this.sequelize.transaction(async (t) => {
+            const entity = isDriver 
+                ? await this.driversService.create(dto) 
+                : await this.usersService.create(dto);
+
+            if (!entity) throw new BadRequestException('Registration failed');
+            return await this.login(entity as unknown as IAuthEntity);
+        });
+    }
+
+    async refreshTokens(refreshToken: string) {
         try {
-            const decoded = this.jwtService.verify(rt, { secret: this.configService.get('JWT_REFRESH_SECRET') });
-            const user = await this.userModel.findByPk(decoded.sub);
-            if (!user || !user.refreshToken || !(await bcrypt.compare(rt, user.refreshToken))) throw new Error();
-            const tokens = await this.generateTokens(user);
-            await this.updateRefreshToken(user.id, tokens.refreshToken);
+            const payload = await this.jwtService.verifyAsync(refreshToken);
+            const entity = await this.getEntityById(payload.sub, payload.role);
+
+            if (!entity?.refreshToken || !(await bcrypt.compare(refreshToken, entity.refreshToken))) {
+                throw new UnauthorizedException();
+            }
+
+            const tokens = await this.generateTokens(entity.id, entity.email, payload.role);
+            await this.updateRefreshToken(entity.id, payload.role, tokens.refresh_token);
             return tokens;
         } catch {
-            throw new UnauthorizedException('Access Denied');
+            throw new UnauthorizedException('Invalid or expired token');
         }
     }
 
-    async logout(userId: string) {
-        await this.userModel.update({ refreshToken: null }, { where: { id: userId } });
+    async logout(userId: string, role: string) {
+        const model = role === Role.DRIVER ? this.driverModel : this.userModel;
+        await (model as any).update({ refreshToken: null }, { where: { id: userId } });
+        return { message: 'Logged out successfully' };
     }
 
-    async getMe(userId: string) {
-        const user = await this.userModel.findByPk(userId, { attributes: { exclude: ['password', 'refreshToken'] } });
-        if (!user) throw new NotFoundException();
-        return user;
+    private async getEntityById(id: string, role: string): Promise<IAuthEntity | null> {
+        const model = role === Role.DRIVER ? this.driverModel : this.userModel;
+        const entity = await (model as any).findByPk(id);
+        return entity as unknown as IAuthEntity;
     }
 
-    async changePassword(userId: string, dto: ChangePasswordDto) {
-        const user = await this.userModel.findByPk(userId);
-        const isMatch = await bcrypt.compare(dto.oldPassword, user.password);
-        if (!isMatch) throw new BadRequestException('Old password incorrect');
-        user.password = await bcrypt.hash(dto.newPassword, 10);
-        await user.save();
-        return { message: 'Success' };
-    }
-
-    async forgotPassword(email: string) {
-        const user = await this.userModel.findOne({ where: { email } });
-        if (!user) throw new NotFoundException('Email not found');
-        return { message: 'Reset link sent' };
-    }
-
-    async resetPassword(dto: ResetPasswordDto) {
-        const user = await this.userModel.findOne({ where: { email: 'admin@example.com' } });
-        if (!user) throw new NotFoundException('Invalid token');
-
-        user.password = await bcrypt.hash(dto.newPassword, 10);
-        await user.save();
-        return { message: 'Password has been reset' };
-    }
-
-    private async generateTokens(user: User) {
-        const payload = { sub: user.id, email: user.email, role: user.role };
+    private async generateTokens(userId: string, email: string, role: string) {
+        const payload: JwtPayload = { sub: userId, email, role: role as Role };
         const [at, rt] = await Promise.all([
-            this.jwtService.signAsync(payload, { expiresIn: '1h', secret: this.configService.get('JWT_SECRET') }),
-            this.jwtService.signAsync(payload, { expiresIn: '7d', secret: this.configService.get('JWT_REFRESH_SECRET') })
+            this.jwtService.signAsync(payload, { expiresIn: '1d' }),
+            this.jwtService.signAsync(payload, { expiresIn: '7d' }),
         ]);
-        return { accessToken: at, refreshToken: rt };
+        return { access_token: at, refresh_token: rt };
     }
 
-    private async updateRefreshToken(userId: string, rt: string) {
-        const hashedRt = await bcrypt.hash(rt, 10);
-        await this.userModel.update({ refreshToken: hashedRt }, { where: { id: userId } });
+    private async updateRefreshToken(userId: string, role: string, refreshToken: string) {
+        const model = role === Role.DRIVER ? this.driverModel : this.userModel;
+        const hashed = await bcrypt.hash(refreshToken, 10);
+        await (model as any).update({ refreshToken: hashed }, { where: { id: userId } });
     }
 }

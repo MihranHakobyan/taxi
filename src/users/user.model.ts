@@ -1,32 +1,27 @@
-import { Column, DataType, Model, Table, PrimaryKey, Default, Unique } from 'sequelize-typescript';
+import { Column, DataType, Model, Table, Index } from 'sequelize-typescript';
 import { Role } from '../common/enums/role.enum';
 
-@Table({ tableName: 'users', timestamps: true })
-export class User extends Model<User> {
-  @PrimaryKey
-  @Default(DataType.UUIDV4)
-  @Column(DataType.CHAR(36))
-  declare id: string;
+@Table({ tableName: 'users', timestamps: true, paranoid: true })
+export class User extends Model {
+    @Column({ type: DataType.UUID, defaultValue: DataType.UUIDV4, primaryKey: true })
+    id: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  declare username: string;
+    @Column({ type: DataType.STRING, allowNull: false })
+    username: string;
 
-  @Unique
-  @Column({ type: DataType.STRING, allowNull: false })
-  declare email: string;
+    @Index({ unique: true })
+    @Column({ type: DataType.STRING, allowNull: false, unique: true, validate: { isEmail: true } })
+    email: string;
 
-  @Column({ type: DataType.STRING, allowNull: false })
-  declare password: string;
+    @Column({ type: DataType.STRING, allowNull: false })
+    password: string;
 
-  @Column({
-    type: DataType.ENUM(...Object.values(Role)),
-    defaultValue: Role.USER,
-  })
-  declare role: Role;
+    @Column({ type: DataType.ENUM(Role.ADMIN, Role.USER), defaultValue: Role.USER })
+    role: Role;
 
-  @Column({ type: DataType.BOOLEAN, defaultValue: true })
-  declare isActive: boolean;
+    @Column({ type: DataType.STRING, allowNull: true })
+    refreshToken: string;
 
-  @Column({ type: DataType.TEXT, allowNull: true })
-  declare refreshToken: string;
+    @Column({ type: DataType.BOOLEAN, defaultValue: true })
+    isActive: boolean;
 }

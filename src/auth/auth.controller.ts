@@ -1,49 +1,42 @@
-import { Controller, Post, Body, UseGuards, Req, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Post, Body, Req, UseGuards, HttpCode, HttpStatus, UnauthorizedException } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { RegisterDto } from './dto/register.dto';
-import { AuthDto } from './dto/auth.dto';
-import { ChangePasswordDto } from './dto/change-password.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
+import { LoginDto, ChangePasswordDto } from './dto/auth.dto';
+import { CreateUserDto } from '../users/dto/create-user.dto';
+import { CreateDriverDto } from '../drivers/dto/create-driver.dto';
 
 @Controller('auth')
 export class AuthController {
-    constructor(private authService: AuthService) { }
+    constructor(private readonly authService: AuthService) { }
 
-    @Post('register')
-    register(@Body() dto: RegisterDto) { return this.authService.register(dto); }
+    @Post('register/user')
+    registerUser(@Body() dto: CreateUserDto) {
+        return this.authService.register(dto, false);
+    }
+
+    @Post('register/driver')
+    registerDriver(@Body() dto: CreateDriverDto) {
+        return this.authService.register(dto, true);
+    }
 
     @Post('login')
     @HttpCode(HttpStatus.OK)
-    login(@Body() dto: AuthDto) { return this.authService.login(dto); }
+    async login(@Body() dto: LoginDto) {
+        const entity = await this.authService.validateUser(dto.email, dto.password);
+        if (!entity) throw new UnauthorizedException('Invalid credentials');
+        return this.authService.login(entity);
+    }
 
     @Post('refresh')
     @HttpCode(HttpStatus.OK)
-    refresh(@Body('refreshToken') rt: string) { return this.authService.refresh(rt); }
+    refresh(@Body('refreshToken') refreshToken: string) {
+        return this.authService.refreshTokens(refreshToken);
+    }
 
     @UseGuards(JwtAuthGuard)
     @Post('logout')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    logout(@Req() req) { return this.authService.logout(req.user.id); }
-
-    @UseGuards(JwtAuthGuard)
-    @Get('me')
-    getMe(@Req() req) { return this.authService.getMe(req.user.id); }//sa karox enq hanel
-
-    @UseGuards(JwtAuthGuard)
-    @Post('change-password')
-    changePassword(@Req() req, @Body() dto: ChangePasswordDto) {
-        return this.authService.changePassword(req.user.id, dto);
-    }
-
-    @Post('forgot-password')
-    forgotPassword(@Body('email') email: string) {
-        return this.authService.forgotPassword(email);
-    }
-
-    @Post('reset-password')
     @HttpCode(HttpStatus.OK)
-    resetPassword(@Body() dto: ResetPasswordDto) {
-        return this.authService.resetPassword(dto);
+    logout(@Req() req: any) {
+        return this.authService.logout(req.user.userId, req.user.role);
     }
 }

@@ -1,18 +1,30 @@
-import { IsEmail, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsEnum, IsOptional } from 'class-validator';
 import { Role } from '../../common/enums/role.enum';
+import { Is } from 'sequelize-typescript';
 
 export class CreateUserDto {
-  @IsString()
-  username: string;
+    @IsEmail({}, { message: 'Invalid email format' })
+    @IsNotEmpty()
+    email: string;
 
-  @IsEmail()
-  email: string;
+    @IsString()
+    @IsNotEmpty()
+    username: string;
 
-  @IsString()
-  @MinLength(6)
-  password: string;
+    @IsString()
+    @MinLength(6, { message: 'Password must be at least 6 characters' })
+    @IsNotEmpty()
+    password: string;
 
-  @IsEnum(Role)
-  @IsOptional()
-  role?: Role;
+    @IsString()
+    @IsNotEmpty()
+    firstName: string;
+
+    @IsString()
+    @IsNotEmpty()
+    lastName: string;
+
+    @IsEnum(Role)
+    @IsOptional()
+    role?: Role;
 }
