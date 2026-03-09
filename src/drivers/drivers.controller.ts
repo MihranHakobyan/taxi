@@ -2,10 +2,11 @@ import {
   Controller, Get, Patch, Delete, Body, Param,
   Query, UseGuards, HttpCode, HttpStatus, ParseUUIDPipe
 } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
 import { DriversService } from './drivers.service';
 import { UpdateDriverDto } from './dto/update-driver.dto';
-import { DriverQueryDto } from './dto/driver-query.dto'; 
-import { WaybillQueryDto } from './dto/waybill-query.dto'; 
+import { DriverQueryDto } from './dto/driver-query.dto';
+import { WaybillQueryDto } from './dto/waybill-query.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -13,34 +14,42 @@ import { Role } from '../common/enums/role.enum';
 import { DriverStatus } from './driver.model';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 
+@ApiTags('drivers')
+@ApiBearerAuth('accessToken')
 @Controller('drivers')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class DriversController {
   constructor(private readonly driversService: DriversService) { }
 
   @Get()
+  @ApiOperation({ summary: 'Find all drivers' })
   findAll(@Query() query: DriverQueryDto) {
     return this.driversService.findAll(query);
   }
 
   @Get('me')
+  @ApiOperation({ summary: 'Get current driver profile' })
   getMe(@CurrentUser('userId') driverId: string) {
     return this.driversService.findOne(driverId);
   }
 
   @Get(':id')
+  @ApiOperation({ summary: 'Get driver by id' })
   findOne(@Param('id', ParseUUIDPipe) id: string) {
     return this.driversService.findOne(id);
   }
 
   @Patch(':id')
   @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update driver' })
   update(@Param('id', ParseUUIDPipe) id: string, @Body() dto: UpdateDriverDto) {
     return this.driversService.update(id, dto);
   }
 
   @Patch(':id/status')
   @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update driver status' })
+  @ApiBody({ schema: { properties: { status: { type: 'string', enum: Object.values(DriverStatus) } } } })
   updateStatus(
     @Param('id', ParseUUIDPipe) id: string,
     @Body('status') status: DriverStatus
@@ -51,11 +60,13 @@ export class DriversController {
   @Delete(':id')
   @Roles(Role.ADMIN)
   @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Delete driver' })
   remove(@Param('id', ParseUUIDPipe) id: string) {
     return this.driversService.remove(id);
   }
 
   @Get('me/waybills')
+  @ApiOperation({ summary: 'Get my waybills' })
   getMyWaybills(
     @CurrentUser('userId') driverId: string,
     @Query() query: WaybillQueryDto
@@ -65,6 +76,7 @@ export class DriversController {
 
   @Get(':id/waybills')
   @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Get driver waybills by id' })
   getDriverWaybills(
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: WaybillQueryDto
