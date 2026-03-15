@@ -5,6 +5,12 @@ import { Role } from '../common/enums/role.enum';
 export class User extends Model {
     @Column({ type: DataType.UUID, defaultValue: DataType.UUIDV4, primaryKey: true })
     id: string;
+    
+    @Column({ type: DataType.STRING, allowNull: false })
+    firstName: string;
+
+    @Column({ type: DataType.STRING, allowNull: false })
+    lastName: string;
 
     @Column({ type: DataType.STRING, allowNull: false })
     username: string;
@@ -24,4 +30,10 @@ export class User extends Model {
 
     @Column({ type: DataType.BOOLEAN, defaultValue: true })
     isActive: boolean;
+
+    @Column({ type: DataType.STRING, allowNull: true })
+    resetPasswordToken: string;
+
+    @Column({ type: DataType.DATE, allowNull: true })
+    resetPasswordExpires: Date;
 }

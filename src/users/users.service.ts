@@ -1,22 +1,31 @@
-import { Injectable, NotFoundException, ConflictException, InternalServerErrorException } from '@nestjs/common';
+import { Injectable, NotFoundException, ConflictException, InternalServerErrorException, BadRequestException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { ConfigService } from '@nestjs/config';
 import { User } from './user.model';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Op } from 'sequelize';
 import * as bcrypt from 'bcrypt';
-import { log } from 'console';
+import * as crypto from 'crypto';
 
 @Injectable()
 export class UsersService {
-  constructor(@InjectModel(User) private readonly userModel: typeof User) { }
+  constructor(
+    @InjectModel(User) private readonly userModel: typeof User,
+    private readonly configService: ConfigService) { }
 
   async create(dto: CreateUserDto): Promise<User> {
+
     const existingUser = await this.userModel.findOne({ where: { email: dto.email } });
+
+
+
     if (existingUser) throw new ConflictException('User with this email already exists');
 
     try {
-      const hashedPassword = await bcrypt.hash(dto.password, 10);
+      const serverSalt = this.configService.get<string>('PASSWORD_SALT');
+      const passwordToHash = dto.password + serverSalt;
+      const hashedPassword = await bcrypt.hash(passwordToHash, 10);
 
       const user = await this.userModel.create({ ...dto, password: hashedPassword });
 
@@ -76,6 +85,14 @@ export class UsersService {
     return user;
   }
 
+  async findByEmail(email: string): Promise<User | null> {
+    return await this.userModel.findOne({
+      where: {
+        email: email.trim().toLowerCase()
+      },
+    });
+  }
+
   async update(id: string, dto: UpdateUserDto): Promise<User> {
     const user = await this.userModel.findByPk(id);
     if (!user) throw new NotFoundException('User not found');
@@ -88,7 +105,9 @@ export class UsersService {
     }
 
     if (dto.password) {
-      dto.password = await bcrypt.hash(dto.password, 10);
+      const serverSalt = this.configService.get<string>('PASSWORD_SALT');
+      const passwordToHash = dto.password + serverSalt;
+      dto.password = await bcrypt.hash(passwordToHash, 10);
     }
 
     await user.update(dto);
@@ -113,4 +132,58 @@ export class UsersService {
     await user.destroy();
     return { success: true, message: 'User deleted successfully' };
   }
+
+  async createPasswordResetToken(email: string): Promise<{ user: Partial<User>; token: string }> {
+    const user = await this.userModel.findOne({ where: { email } });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const salt = this.configService.get<string>('TOKEN_SALT') || '';
+    const hashedToken = crypto.createHash('sha256').update(token + salt).digest('hex');
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = new Date(Date.now() + 3600000);
+
+    await user.save();
+
+    const cleanUser = user.get({ plain: true });
+    delete cleanUser.password;
+    delete cleanUser.refreshToken;
+
+    return { user: cleanUser, token };
+  }
+
+  async resetPassword(token: string, newPassword: string): Promise<boolean> {
+    const salt = this.configService.get<string>('TOKEN_SALT') || '';
+    const hashedToken = crypto.createHash('sha256').update(token + salt).digest('hex');
+
+    const user = await this.userModel.findOne({
+      where: {
+        resetPasswordToken: hashedToken,
+        resetPasswordExpires: {
+          [Op.gt]: new Date(),
+        },
+      },
+    });
+
+    if (!user) {
+      throw new BadRequestException('Invalid or expired reset token');
+    }
+    
+    const serverSalt = this.configService.get<string>('PASSWORD_SALT');
+    const passwordToHash = newPassword + serverSalt;
+    const hashedPassword = await bcrypt.hash(passwordToHash, 10);
+
+    await user.update({
+      password: hashedPassword,
+      resetPasswordToken: null,
+      resetPasswordExpires: null,
+    });
+
+    return true;
+  }
+
 }

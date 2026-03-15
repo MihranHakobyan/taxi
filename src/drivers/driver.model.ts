@@ -60,15 +60,22 @@ export class Driver extends Model<Driver> {
     @Column({ type: DataType.STRING, allowNull: true })
     refreshToken: string;
 
+
+    @Column({
+        type: DataType.STRING,
+        allowNull: true,
+    })
+    resetPasswordToken: string;
+
+
+    @Column({
+        type: DataType.DATE,
+        allowNull: true,
+    })
+    resetPasswordExpires: Date;
+
+
     // @HasMany(() => Waybill)
     // waybills: Waybill[];
 
-    @BeforeCreate
-    @BeforeUpdate
-    static async hashPassword(instance: Driver) {
-        if (instance.changed('password')) {
-            const salt = await bcrypt.genSalt(10);
-            instance.password = await bcrypt.hash(instance.password, salt);
-        }
-    }
 }

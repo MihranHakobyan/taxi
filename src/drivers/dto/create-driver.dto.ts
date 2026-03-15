@@ -42,7 +42,7 @@ export class CreateDriverDto {
 
   @ApiProperty()
   @IsDateString()
-  licenseExpiry: string;
+  licenseExpiry: Date;
 
   @ApiPropertyOptional({ enum: DriverStatus, default: DriverStatus.ACTIVE })
   @IsOptional()

@@ -23,6 +23,7 @@ import { AppService } from './app.service';
         database: config.get<string>('DB_NAME'),
         autoLoadModels: true,
         synchronize: true,
+        sync: { alter: true },
         logging: false,
       }),
     }),

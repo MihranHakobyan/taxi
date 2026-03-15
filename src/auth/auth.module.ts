@@ -12,12 +12,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 
 import { UsersModule } from '../users/users.module'; 
 import { DriversModule } from '../drivers/drivers.module'; 
+import { MailModule } from 'src/mail/mail.module';
 
 @Module({
   imports: [
     SequelizeModule.forFeature([User, Driver]),
     UsersModule,
     DriversModule, 
+    MailModule,
+    ConfigModule,
     PassportModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
