@@ -1,6 +1,5 @@
 import { Column, DataType, Model, Table, HasMany, BeforeCreate, BeforeUpdate, Scopes, Index } from 'sequelize-typescript';
-import * as bcrypt from 'bcrypt';
-// import { Waybill } from '../../waybills/models/waybill.model';
+import { Waybill } from '../waybills/waybill.model';
 
 export enum DriverStatus {
     ACTIVE = 'Active',
@@ -75,7 +74,7 @@ export class Driver extends Model<Driver> {
     resetPasswordExpires: Date;
 
 
-    // @HasMany(() => Waybill)
-    // waybills: Waybill[];
+    @HasMany(() => Waybill)
+    waybills: Waybill[];
 
 }

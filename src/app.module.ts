@@ -5,9 +5,11 @@ import { SequelizeModule } from '@nestjs/sequelize';
 import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { DriversModule } from './drivers/drivers.module';
+import { WaybillsModule } from './waybills/waybill.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+
 
 @Module({
   imports: [
@@ -30,8 +32,9 @@ import { AppService } from './app.service';
     AuthModule,
     UsersModule,
     DriversModule,
+    WaybillsModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

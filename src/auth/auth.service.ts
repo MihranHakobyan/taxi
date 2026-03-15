@@ -92,8 +92,8 @@ export class AuthService {
     private async generateTokens(userId: string, email: string, role: string) {
         const payload: JwtPayload = { sub: userId, email, role: role as Role };
         const [at, rt] = await Promise.all([
-            this.jwtService.signAsync(payload, { expiresIn: this.configService.get<string>('JWT_EXPIRES_IN') as any }),
-            this.jwtService.signAsync(payload, { expiresIn: this.configService.get<string>('JWT_REFRESH_EXPIRES_IN') as any }),
+            this.jwtService.signAsync(payload, { expiresIn: "15m" }),
+            this.jwtService.signAsync(payload, { expiresIn: "7d" }),
         ]);
         return { access_token: at, refresh_token: rt };
     }
