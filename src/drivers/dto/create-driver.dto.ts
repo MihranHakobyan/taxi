@@ -8,45 +8,70 @@ import { Transform } from 'class-transformer';
 import { DriverStatus } from '../driver.model';
 
 export class CreateDriverDto {
-  @ApiProperty()
+  @ApiProperty({ 
+    example: 'John', 
+    description: 'The first name of the driver' 
+  })
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'First name is required' })
   @Transform(({ value }) => value?.trim())
   firstName: string;
 
-  @ApiProperty()
+  @ApiProperty({ 
+    example: 'Doe', 
+    description: 'The last name of the driver' 
+  })
   @IsString()
-  @IsNotEmpty()
+  @IsNotEmpty({ message: 'Last name is required' })
   @Transform(({ value }) => value?.trim())
   lastName: string;
 
-  @ApiProperty()
-  @IsEmail()
+  @ApiProperty({ 
+    example: 'driver@taxi.com', 
+    description: 'The unique email address of the driver' 
+  })
+  @IsEmail({}, { message: 'Invalid email format' })
   @Transform(({ value }) => value?.toLowerCase().trim())
   email: string;
 
-  @ApiProperty()
-  @IsNotEmpty()
-  @MinLength(8)
+  @ApiProperty({ 
+    example: 'strongPassword123', 
+    description: 'Security password for the driver account (min 8 chars)' 
+  })
+  @IsNotEmpty({ message: 'Password is required' })
+  @MinLength(8, { message: 'Password must be at least 8 characters long' })
   password: string;
 
-  @ApiProperty()
-  @IsPhoneNumber()
+  @ApiProperty({ 
+    example: '+37494123456', 
+    description: 'International format phone number' 
+  })
+  @IsPhoneNumber(null, { message: 'Invalid phone number format' })
   phone: string;
 
-  @ApiProperty()
+  @ApiProperty({ 
+    example: 'AB123456', 
+    description: 'Driver license number (alphanumeric, 6-20 characters)' 
+  })
   @IsString()
-  @IsNotEmpty()
-  @Matches(/^[A-Z0-9]{6,20}$/, { message: 'License number must be alphanumeric' })
+  @IsNotEmpty({ message: 'License number is required' })
+  @Matches(/^[A-Z0-9]{6,20}$/, { message: 'License number must be alphanumeric and between 6-20 characters' })
   licenseNumber: string;
 
-  @ApiProperty()
-  @IsDateString()
+  @ApiProperty({ 
+    example: '2030-12-31', 
+    description: 'The expiration date of the driver license' 
+  })
+  @IsDateString({}, { message: 'License expiry must be a valid ISO date string' })
   licenseExpiry: Date;
 
-  @ApiPropertyOptional({ enum: DriverStatus, default: DriverStatus.ACTIVE })
+  @ApiPropertyOptional({ 
+    enum: DriverStatus, 
+    default: DriverStatus.ACTIVE,
+    description: 'The current status of the driver in the system'
+  })
   @IsOptional()
-  @IsEnum(DriverStatus)
+  @IsEnum(DriverStatus, { message: 'Invalid driver status' })
   status?: DriverStatus;
 }
 

@@ -1,12 +1,16 @@
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 
 export class ForgotPasswordEmailDto {
   @ApiProperty({
     example: 'user@example.com',
-    description: 'The email address of the user who forgot their password',
+    description: 'The registered email address of the user who needs to reset their password',
+    format: 'email',
   })
-  @IsEmail({}, { message: 'Please enter a valid email address' })
+  @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'Email is required' })
+  @IsString()
+  @Transform(({ value }) => value?.toLowerCase().trim()) // Silently cleans the input
   email: string;
 }
