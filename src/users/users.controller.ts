@@ -27,7 +27,7 @@ export class UsersController {
   }
 
   @Get()
-  @Roles(Role.ADMIN) // Assuming only Admin should see all users
+  @Roles(Role.ADMIN) 
   @ApiOperation({ summary: 'Get all users list (Admin only)' })
   @ApiResponse({ status: 200, description: 'List of all users' })
   @ApiResponse({ status: 403, description: 'Forbidden - Admin role required' })

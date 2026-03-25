@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { UsersModule } from './users/users.module';
 import { DriversModule } from './drivers/drivers.module';
 import { WaybillsModule } from './waybills/waybill.module';
+import { CarsModule } from './cars/cars.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -33,6 +34,7 @@ import { AppService } from './app.service';
     UsersModule,
     DriversModule,
     WaybillsModule,
+    CarsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

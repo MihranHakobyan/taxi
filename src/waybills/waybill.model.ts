@@ -1,6 +1,6 @@
 import { Column, DataType, Model, Table, ForeignKey, BelongsTo, CreatedAt, UpdatedAt } from 'sequelize-typescript';
 import { Driver } from '../drivers/driver.model';
-// import { Car } from '../cars/car.model';
+import { Car } from '../cars/car.model';
 
 export enum WaybillStatus {
     ACTIVE = 'Active',
@@ -8,12 +8,24 @@ export enum WaybillStatus {
     CANCELLED = 'Cancelled',
 }
 
+interface WaybillCreationAttrs {
+  number: string;
+  driverId: string;
+  carId: string;
+  date: string;
+  startTime: string;
+  startMileage: number;
+  medicalCheck?: boolean;
+  technicalCheck?: boolean;
+  status?: WaybillStatus;
+}
+
 @Table({
     tableName: 'waybills',
     timestamps: true,
     underscored: true
 })
-export class Waybill extends Model<Waybill> {
+export class Waybill extends Model<Waybill, WaybillCreationAttrs> {
     @Column({
         type: DataType.UUID,
         defaultValue: DataType.UUIDV4,
@@ -35,12 +47,12 @@ export class Waybill extends Model<Waybill> {
     })
     driverId: string;
 
-    //   @ForeignKey(() => Car)
-    //   @Column({ 
-    //     type: DataType.UUID, 
-    //     allowNull: false 
-    //   })
-    //   carId: string;
+      @ForeignKey(() => Car)
+      @Column({ 
+        type: DataType.UUID, 
+        allowNull: false 
+      })
+      carId: string;
 
     @Column({
         type: DataType.DATEONLY,
@@ -102,6 +114,6 @@ export class Waybill extends Model<Waybill> {
     @BelongsTo(() => Driver)
     driver: Driver;
 
-    //   @BelongsTo(() => Car)
-    //   car: Car;
+    @BelongsTo(() => Car)
+    car: Car;
 }

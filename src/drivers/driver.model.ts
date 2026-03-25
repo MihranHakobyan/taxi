@@ -1,5 +1,6 @@
-import { Column, DataType, Model, Table, HasMany, BeforeCreate, BeforeUpdate, Scopes, Index } from 'sequelize-typescript';
+import { Column, DataType, Model, Table, HasMany, Scopes, Index } from 'sequelize-typescript';
 import { Waybill } from '../waybills/waybill.model';
+import { Car } from '../cars/car.model';
 
 export enum DriverStatus {
     ACTIVE = 'Active',
@@ -73,6 +74,8 @@ export class Driver extends Model<Driver> {
     })
     resetPasswordExpires: Date;
 
+    @HasMany(() => Car)
+    cars: Car[];
 
     @HasMany(() => Waybill)
     waybills: Waybill[];
