@@ -4,9 +4,11 @@ import { Waybill, WaybillStatus } from './waybill.model';
 import { CreateWaybillDto } from './dto/create-waybill.dto';
 import { UpdateWaybillDto } from './dto/update-waybill.dto';
 import { WaybillQueryDto } from './dto/waybill-query.dto';
-import { Op, Transaction } from 'sequelize';
+import * as fs from 'fs';
+import { join } from 'path';
+import { Op } from 'sequelize';
 import { Driver } from '../drivers/driver.model';
-// import { Car } from '../cars/car.model';
+import { Car } from '../cars/car.model';
 import { Sequelize } from 'sequelize-typescript';
 
 @Injectable()
@@ -74,7 +76,7 @@ export class WaybillsService {
             order: [['createdAt', 'DESC']],
             include: [
                 { model: Driver, attributes: ['id', 'firstName', 'lastName'] },
-                // { model: Car, attributes: ['id', 'plateNumber'] }
+                { model: Car, attributes: ['id', 'plateNumber'] }
             ],
             distinct: true,
         });
@@ -91,7 +93,7 @@ export class WaybillsService {
         const waybill = await this.waybillModel.findByPk(id, {
             include: [
                 { model: Driver },
-                // { model: Car }
+                { model: Car }
             ]
         });
 
@@ -153,5 +155,15 @@ export class WaybillsService {
         const nextSequence = (lastSequence + 1).toString().padStart(6, '0');
 
         return `${prefix}${nextSequence}`;
+    }
+
+    getPdf() {
+        const filePath = join(__dirname, 'pdf', 'list.pdf');
+
+        if (!fs.existsSync(filePath)) {
+            throw new NotFoundException(`Template file not found in ${filePath}`);
+        }
+
+        return fs.readFileSync(filePath);
     }
 }

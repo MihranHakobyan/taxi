@@ -1,9 +1,13 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus, ParseUUIDPipe, } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, HttpCode, HttpStatus, ParseUUIDPipe, Res, StreamableFile, } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth, ApiResponse, ApiParam } from '@nestjs/swagger';
+import { Response } from 'express';
+
 import { WaybillsService } from './waybill.service';
+
 import { CreateWaybillDto } from './dto/create-waybill.dto';
 import { UpdateWaybillDto } from './dto/update-waybill.dto';
 import { WaybillQueryDto } from './dto/waybill-query.dto';
+
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
@@ -32,7 +36,21 @@ export class WaybillsController {
     findAll(@Query() query: WaybillQueryDto) {
         return this.waybillsService.findAll(query);
     }
+    @Get('pdf')
+    @Roles(Role.ADMIN, Role.USER)
+    @ApiOperation({ summary: 'Get waybill pdf' })
+    @ApiResponse({ status: 200, description: 'Waybill pdf retrieved' })
+    async getPdf(@Res({ passthrough: true }) res: Response) {
+        const pdfBuffer = await this.waybillsService.getPdf();
 
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': 'attachment; filename="list.pdf"',
+            'Content-Length': pdfBuffer.length,
+        });
+
+        return new StreamableFile(pdfBuffer);
+    }
     @Get('active/:driverId')
     @Roles(Role.ADMIN, Role.USER)
     @ApiOperation({ summary: 'Get active waybill for a driver' })
@@ -50,6 +68,9 @@ export class WaybillsController {
     findOne(@Param('id', ParseUUIDPipe) id: string) {
         return this.waybillsService.findOne(id);
     }
+
+
+
 
     @Patch(':id')
     @Roles(Role.ADMIN, Role.USER)

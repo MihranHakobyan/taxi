@@ -10,6 +10,7 @@ import { CarsModule } from './cars/cars.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PaymentsModule } from './payments/payments.module';
 
 
 @Module({
@@ -35,6 +36,7 @@ import { AppService } from './app.service';
     DriversModule,
     WaybillsModule,
     CarsModule,
+    PaymentsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

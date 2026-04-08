@@ -45,7 +45,8 @@
     "sequelize": "^6.37.5",
     "sequelize-typescript": "^2.1.6",
     "swagger-ui-express": "^5.0.1",
-    "uuid": "^13.0.0"
+    "uuid": "^13.0.0",
+    "yookassa-ts": "^0.1.14"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
